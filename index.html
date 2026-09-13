@@ -2,9 +2,9 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Sophia Justice Agent — Client-Side Forensic Screening</title>
 <link rel="icon" type="image/svg+xml" href="logo.svg">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="lib/pdf.min.js"></script>
+<script src="lib/xlsx.full.min.js"></script>
+<script src="lib/papaparse.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#0a0a0a;color:#e8d9a8;font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;min-height:100vh;line-height:1.5}
@@ -68,6 +68,8 @@ footer{text-align:center;font-size:11px;color:#5a5142;padding:30px 0 10px;letter
 .login-card .sub{text-align:center;margin-bottom:28px}
 </style></head>
 <body>
+<div id="g-error" style="display:none;position:fixed;top:0;left:0;right:0;background:#e07a5f;color:#0a0a0a;padding:10px 16px;font-size:12px;font-family:monospace;z-index:9999;white-space:pre-wrap;word-break:break-word;max-height:40vh;overflow:auto"></div>
+
 
 <div id="login" class="login-wrap">
   <form class="login-card" id="login-form">
@@ -121,7 +123,10 @@ footer{text-align:center;font-size:11px;color:#5a5142;padding:30px 0 10px;letter
 
 <script src="engine.js"></script>
 <script>
-pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+window.addEventListener("error",e=>{const b=document.getElementById("g-error");if(b){b.style.display="block";b.textContent="⚠ "+e.message+" @ "+(e.filename||"inline")+":"+(e.lineno||"?");}});
+window.addEventListener("unhandledrejection",e=>{const b=document.getElementById("g-error");if(b){b.style.display="block";b.textContent="⚠ async error: "+(e.reason&&e.reason.message||e.reason);}});
+if(typeof pdfjsLib!=="undefined"){pdfjsLib.GlobalWorkerOptions.workerSrc="lib/pdf.worker.min.js";}else{console.warn("pdf.js not loaded — PDF upload unavailable; paste-text and CSV/XLSX still work");}
+
 const PASSWORD="sophia-demo";
 const AUTH_KEY="sophia_client_auth";
 
