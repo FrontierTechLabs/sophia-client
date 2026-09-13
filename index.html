@@ -1,0 +1,285 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Sophia Justice Agent — Client-Side Forensic Screening</title>
+<link rel="icon" type="image/svg+xml" href="logo.svg">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0a;color:#e8d9a8;font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;min-height:100vh;line-height:1.5}
+a{color:#c9a961;text-decoration:none}
+.wrap{max-width:1100px;margin:0 auto;padding:24px}
+header{display:flex;justify-content:space-between;align-items:center;padding:18px 0;border-bottom:1px solid #2a2318;margin-bottom:28px;flex-wrap:wrap;gap:12px}
+.brand{display:flex;align-items:center;gap:14px}
+.brand svg{width:44px;height:44px;flex-shrink:0}
+h1{font-size:20px;color:#f0e2b0;letter-spacing:.02em;font-weight:600}
+.sub{font-size:11px;color:#8a7d5c;letter-spacing:.14em;text-transform:uppercase;margin-top:3px}
+.logout{font-size:12px;color:#8a7d5c;padding:8px 14px;border:1px solid #2a2318;border-radius:8px}
+.logout:hover{border-color:#c9a961;color:#c9a961}
+.panel{background:#0f0e0b;border:1px solid #2a2318;border-radius:14px;padding:24px;margin-bottom:20px}
+.panel h2{font-size:12px;color:#c9a961;letter-spacing:.14em;text-transform:uppercase;margin-bottom:18px;font-weight:600}
+input[type=password],textarea{width:100%;padding:14px 16px;background:#050505;border:1px solid #2a2318;border-radius:10px;color:#f0e2b0;font-size:14px;outline:none;font-family:inherit}
+textarea{min-height:150px;font-family:ui-monospace,Menlo,monospace;font-size:13px;resize:vertical}
+input:focus,textarea:focus{border-color:#c9a961}
+button{padding:12px 22px;background:#c9a961;color:#0a0a0a;border:none;border-radius:10px;font-size:12px;font-weight:700;letter-spacing:.1em;cursor:pointer;text-transform:uppercase;font-family:inherit}
+button:hover{background:#e0bf76}
+button.ghost{background:transparent;color:#c9a961;border:1px solid #c9a961}
+button.ghost:hover{background:#c9a961;color:#0a0a0a}
+button:disabled{opacity:.5;cursor:wait}
+.row{display:flex;gap:12px;margin-top:16px;flex-wrap:wrap}
+.drop{border:2px dashed #2a2318;border-radius:12px;padding:34px 20px;text-align:center;cursor:pointer;transition:.2s;background:#080807}
+.drop:hover,.drop.over{border-color:#c9a961;background:#100e08}
+.drop .big{color:#c9a961;font-size:15px;font-weight:600;margin-bottom:8px}
+.drop p{color:#8a7d5c;font-size:13px}
+input[type=file]{display:none}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:12px}
+.stat{background:#0d0c09;border:1px solid #2a2318;border-radius:10px;padding:14px}
+.stat .k{font-size:10px;color:#8a7d5c;letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+.stat .v{font-size:18px;color:#f0e2b0;font-weight:600}
+.score{display:flex;align-items:center;gap:22px;margin-bottom:22px;flex-wrap:wrap}
+.dial{width:104px;height:104px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;position:relative;background:conic-gradient(var(--c) var(--p),#1a1712 0);color:#f0e2b0}
+.dial::before{content:"";position:absolute;inset:8px;border-radius:50%;background:#0a0a0a}
+.dial span{position:relative;z-index:2}
+.verdict{font-size:22px;font-weight:700;letter-spacing:.04em}
+.verdict.HIGH{color:#e07a5f}.verdict.MEDIUM{color:#e0b34a}.verdict.LOW{color:#7bc47b}
+.flag{border-left:3px solid #c9a961;padding:14px 18px;margin-bottom:14px;background:#0d0c09;border-radius:0 10px 10px 0}
+.flag.high{border-left-color:#e07a5f}.flag.medium{border-left-color:#e0b34a}
+.flag h3{font-size:14px;color:#f0e2b0;margin-bottom:6px;text-transform:capitalize}
+.flag .conf{font-size:10px;color:#8a7d5c;letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px}
+.flag p{font-size:13px;color:#c7b98a;line-height:1.6;margin-bottom:8px}
+.flag .law{font-size:12px;color:#8a7d5c;padding-left:12px;border-left:1px solid #2a2318;margin:4px 0;line-height:1.5}
+.flag .action{font-size:12px;color:#c9a961;margin-top:10px;font-style:italic}
+pre{background:#050505;border:1px solid #2a2318;border-radius:10px;padding:16px;overflow-x:auto;font-size:12px;line-height:1.55;color:#c7b98a;font-family:ui-monospace,Menlo,monospace;white-space:pre-wrap;word-break:break-word}
+.disc{font-size:12px;color:#8a7d5c;line-height:1.7;padding:16px;background:#0d0c09;border:1px solid #2a2318;border-radius:10px;margin-top:20px}
+.disc strong{color:#c9a961}
+.loading{color:#c9a961;font-size:13px;margin-top:16px;display:none;letter-spacing:.05em}
+.loading.on{display:block}
+.err{color:#e07a5f;font-size:13px;margin-top:12px;text-align:center}
+footer{text-align:center;font-size:11px;color:#5a5142;padding:30px 0 10px;letter-spacing:.08em}
+.sov-badge{display:inline-flex;align-items:center;gap:6px;font-size:10px;color:#7bc47b;letter-spacing:.1em;text-transform:uppercase;padding:6px 10px;border:1px solid #1f3a1f;border-radius:20px;background:#0a1a0a}
+.sov-badge::before{content:"●";color:#7bc47b}
+#app{display:none}
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.login-card{background:linear-gradient(180deg,#111 0%,#0a0a0a 100%);border:1px solid #2a2318;border-radius:16px;padding:40px 32px;max-width:420px;width:100%;box-shadow:0 0 60px rgba(232,217,168,0.05)}
+.login-card .logo{text-align:center;margin-bottom:24px}
+.login-card .logo svg{width:64px;height:64px}
+.login-card h1{text-align:center;font-size:22px;letter-spacing:.02em;color:#f0e2b0;margin-bottom:6px}
+.login-card .sub{text-align:center;margin-bottom:28px}
+</style></head>
+<body>
+
+<div id="login" class="login-wrap">
+  <form class="login-card" id="login-form">
+    <div class="logo">
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f0d78c"/><stop offset="0.5" stop-color="#c9a961"/><stop offset="1" stop-color="#8a6d2f"/></linearGradient></defs><circle cx="50" cy="50" r="46" fill="#0a0a0a" stroke="url(#g1)" stroke-width="1.5"/><circle cx="50" cy="50" r="40" fill="none" stroke="url(#g1)" stroke-width="0.5" opacity="0.45"/><path d="M 64 34 Q 64 25 50 25 Q 33 25 33 39 Q 33 49 50 50 Q 67 51 67 62 Q 67 75 50 75 Q 36 75 36 66" fill="none" stroke="url(#g1)" stroke-width="3" stroke-linecap="round"/><circle cx="72" cy="28" r="2.2" fill="url(#g1)"/></svg>
+    </div>
+    <h1>Sophia Justice Agent</h1>
+    <div class="sub">Client-Side Forensic Screening v4.0</div>
+    <input type="password" id="pw" placeholder="Access code" autofocus required>
+    <button type="submit" style="width:100%;margin-top:16px">Enter</button>
+    <div class="err" id="login-err"></div>
+    <div style="text-align:center;margin-top:20px"><span class="sov-badge">100% on-device</span></div>
+  </form>
+</div>
+
+<div id="app" class="wrap">
+<header>
+  <div class="brand">
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="g2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f0d78c"/><stop offset="0.5" stop-color="#c9a961"/><stop offset="1" stop-color="#8a6d2f"/></linearGradient></defs><circle cx="50" cy="50" r="46" fill="#0a0a0a" stroke="url(#g2)" stroke-width="1.5"/><circle cx="50" cy="50" r="40" fill="none" stroke="url(#g2)" stroke-width="0.5" opacity="0.45"/><path d="M 64 34 Q 64 25 50 25 Q 33 25 33 39 Q 33 49 50 50 Q 67 51 67 62 Q 67 75 50 75 Q 36 75 36 66" fill="none" stroke="url(#g2)" stroke-width="3" stroke-linecap="round"/><circle cx="72" cy="28" r="2.2" fill="url(#g2)"/></svg>
+    <div><h1>Sophia Justice Agent v4.0</h1><div class="sub">Client-Side Forensic Screening · Live Demo</div></div>
+  </div>
+  <a class="logout" href="#" id="logout">Sign out</a>
+</header>
+
+<div class="panel">
+  <h2>1 · Submit Document</h2>
+  <div class="drop" id="drop">
+    <div class="big">Drop a file here</div>
+    <p>PDF · XLSX · XLS · CSV · TSV · TXT — everything runs in your browser</p>
+    <input type="file" id="file" accept=".pdf,.xlsx,.xls,.csv,.tsv,.txt,.md,.json">
+    <div id="fname" style="margin-top:10px;color:#c9a961;font-size:13px"></div>
+  </div>
+  <p style="font-size:11px;color:#8a7d5c;margin:20px 0 10px;letter-spacing:.14em;text-transform:uppercase">or paste text directly</p>
+  <textarea id="pasted" placeholder="Paste report text here…"></textarea>
+  <div class="row">
+    <button id="scan">Run Forensic Scan</button>
+    <button class="ghost" id="sample">Load Suspicious Sample</button>
+    <button class="ghost" id="clear">Clear</button>
+  </div>
+  <div class="loading" id="loading">Analyzing document locally — nothing is transmitted…</div>
+</div>
+
+<div id="results"></div>
+
+<div class="disc">
+  <strong>Honest capability statement.</strong> This is an automated <em>screening</em> aid. All processing happens <strong>in your browser</strong> — your file never leaves your device. No server, no upload, no cloud. It performs keyword/regex/statistical analysis and produces a law-referenced report to guide human review. It does not guarantee zero false positives, does not constitute a legal opinion, and does not cryptographically sign its output. Every score and verdict is a prioritization aid — <strong>not a conclusion</strong>.
+</div>
+</div>
+
+<footer>Sovereign Intelligence Mesh · Satya Universe · Kerala, India</footer>
+
+<script src="engine.js"></script>
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+const PASSWORD="sophia-demo";
+const AUTH_KEY="sophia_client_auth";
+
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function showApp(){ $("login").style.display="none"; $("app").style.display="block"; }
+function showLogin(){ $("app").style.display="none"; $("login").style.display="flex"; }
+
+if(sessionStorage.getItem(AUTH_KEY)==="1") showApp();
+
+$("login-form").addEventListener("submit",e=>{
+  e.preventDefault();
+  if($("pw").value===PASSWORD){ sessionStorage.setItem(AUTH_KEY,"1"); showApp(); }
+  else { $("login-err").textContent="Incorrect access code."; $("pw").value=""; }
+});
+$("logout").addEventListener("click",e=>{ e.preventDefault(); sessionStorage.removeItem(AUTH_KEY); showLogin(); });
+
+let selectedFile=null;
+const drop=$("drop"),fileEl=$("file"),fname=$("fname"),pasted=$("pasted"),scanBtn=$("scan"),loading=$("loading"),results=$("results");
+
+drop.addEventListener("click",()=>fileEl.click());
+drop.addEventListener("dragover",e=>{e.preventDefault();drop.classList.add("over");});
+drop.addEventListener("dragleave",()=>drop.classList.remove("over"));
+drop.addEventListener("drop",e=>{e.preventDefault();drop.classList.remove("over");if(e.dataTransfer.files.length){fileEl.files=e.dataTransfer.files;pick();}});
+fileEl.addEventListener("change",pick);
+function pick(){ if(fileEl.files.length){ selectedFile=fileEl.files[0]; fname.textContent="✓ "+selectedFile.name+"  ("+(selectedFile.size/1024).toFixed(0)+" KB)"; } }
+
+$("sample").addEventListener("click",()=>{ pasted.value=SAMPLE; selectedFile=null; fileEl.value=""; fname.textContent=""; });
+$("clear").addEventListener("click",()=>{ pasted.value=""; selectedFile=null; fileEl.value=""; fname.textContent=""; results.innerHTML=""; });
+
+scanBtn.addEventListener("click",async()=>{
+  scanBtn.disabled=true; loading.classList.add("on"); results.innerHTML="";
+  try{
+    let text="", label="";
+    if(selectedFile){
+      const r=await SophiaEngine.extractAnyFile(selectedFile);
+      text=r.text; label=selectedFile.name+" (via "+r.method+")";
+    } else if(pasted.value.trim()){
+      text=pasted.value; label="pasted text";
+    } else { alert("Upload a file or paste text first."); scanBtn.disabled=false; loading.classList.remove("on"); return; }
+    const report=await SophiaEngine.forensicScanText(text,label);
+    if(report.error){ results.innerHTML='<div class="panel"><h2>Error</h2><pre>'+esc(report.error+"\n"+(report.detail||""))+'</pre></div>'; }
+    else { window.__lastReport=report; render(report); }
+  } catch(e){ results.innerHTML='<div class="panel"><h2>Error</h2><pre>'+esc(String(e.message||e))+'</pre></div>'; }
+  finally{ scanBtn.disabled=false; loading.classList.remove("on"); }
+});
+
+function render(d){
+  const v=d.verdict.replace(" RISK",""); const pct=d.suspicion_score;
+  const c=v==="HIGH"?"#e07a5f":v==="MEDIUM"?"#e0b34a":"#7bc47b";
+  let h='<div class="panel"><h2>2 · Board Summary</h2><div class="score">';
+  h+='<div class="dial" style="--c:'+c+';--p:'+pct+'%"><span>'+pct+'</span></div>';
+  h+='<div><div class="verdict '+v+'">'+esc(d.verdict)+'</div>';
+  h+='<div style="font-size:12px;color:#8a7d5c;margin-top:6px">Score '+pct+'/100 · '+d.statistics.flagged_categories+' flagged categor'+(d.statistics.flagged_categories===1?"y":"ies")+'</div>';
+  if(d.score_caveats&&d.score_caveats.length)h+='<div style="font-size:12px;color:#e07a5f;margin-top:8px">⚠ '+esc(d.score_caveats.join(" "))+'</div>';
+  h+='</div></div><div class="grid">';
+  const stats=[["Characters",d.statistics.total_characters.toLocaleString()],["Financial numbers",d.statistics.financial_numbers.toLocaleString()],["Flagged categories",d.statistics.flagged_categories],["Named persons",d.statistics.named_persons_found],["Dates",d.chronology.length],["Extraction",esc(d.document.split("(").pop().replace(")",""))]];
+  for(const [k,val] of stats) h+='<div class="stat"><div class="k">'+k+'</div><div class="v">'+val+'</div></div>';
+  h+='</div><div class="row" style="margin-top:18px"><button class="ghost" onclick="downloadReport()">Download Branded Report (HTML)</button></div></div>';
+  if(d.red_flags.length){
+    h+='<div class="panel"><h2>3 · Financial &amp; Regulatory Findings</h2>';
+    for(const f of d.red_flags){
+      const ref=SophiaEngine.LEGAL_REFERENCES[f.id]||{};
+      const cls=f.confidence==="HIGH"?"high":f.confidence==="MEDIUM"?"medium":"";
+      h+='<div class="flag '+cls+'"><h3>'+esc(f.id.replace(/_/g," "))+'</h3>';
+      h+='<div class="conf">Confidence '+f.confidence+' · '+f.occurrence_count+' occurrence(s)</div>';
+      if(ref.summary) h+='<p><em>'+esc(ref.summary)+'</em></p>';
+      for(const ev of f.evidence.slice(0,3)) h+='<p>…'+esc(ev.context.slice(0,220))+'…</p>';
+      if(f.occurrence_count>3) h+='<p style="color:#8a7d5c;font-size:12px">… and '+(f.occurrence_count-3)+' more in JSON</p>';
+      if(ref.laws) for(const l of ref.laws.slice(0,4)) h+='<div class="law">⚖ '+esc(l)+'</div>';
+      if(ref.action) h+='<div class="action">→ '+esc(ref.action)+'</div>';
+      h+='</div>';
+    }
+    h+='</div>';
+  }
+  if(d.title_search){const t=d.title_search;h+='<div class="panel"><h2>4 · Title Search Analysis</h2>';
+    if(t.confidence==="UNRECOGNIZED_FORMAT")h+='<p style="color:#e07a5f;font-size:13px">Format not recognized — manual review required.</p>';
+    else h+='<pre>'+esc(JSON.stringify({property:t.property,first_party:t.parties.first_party,second_party:t.parties.second_party,registration:t.registration,legal_opinion:t.legal_opinion,confidence:t.confidence,red_flags:t.red_flags},null,2))+'</pre>';
+    h+='</div>';}
+  h+='<div class="panel"><h2>5 · Benford\'s Law</h2><pre>'+esc(JSON.stringify(d.benford_law,null,2))+'</pre></div>';
+  h+='<div class="panel"><h2>6 · Entities</h2><pre>'+esc(JSON.stringify(d.entities,null,2))+'</pre></div>';
+  if(d.chronology.length)h+='<div class="panel"><h2>7 · Chronology</h2><pre>'+esc(d.chronology.join("\n"))+'</pre></div>';
+  h+='<div class="panel"><h2>Integrity</h2><pre>'+esc(JSON.stringify(d.integrity,null,2))+'</pre></div>';
+  h+='<div class="panel"><h2>Full JSON</h2><pre style="max-height:400px;overflow:auto">'+esc(JSON.stringify(d,null,2))+'</pre></div>';
+  results.innerHTML=h;
+}
+
+function downloadReport(){
+  const d=window.__lastReport; if(!d){alert("Run a scan first.");return;}
+  const v=d.verdict.replace(" RISK",""); const pct=d.suspicion_score;
+  const color=v==="HIGH"?"#c94f2f":v==="MEDIUM"?"#c9a961":"#5a9a5a";
+  const logo=`<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style="width:64px;height:64px"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f0d78c"/><stop offset="0.5" stop-color="#c9a961"/><stop offset="1" stop-color="#8a6d2f"/></linearGradient></defs><circle cx="50" cy="50" r="46" fill="#fff" stroke="url(#lg)" stroke-width="1.5"/><path d="M 64 34 Q 64 25 50 25 Q 33 25 33 39 Q 33 49 50 50 Q 67 51 67 62 Q 67 75 50 75 Q 36 75 36 66" fill="none" stroke="url(#lg)" stroke-width="3" stroke-linecap="round"/></svg>`;
+  let flagsHtml="";
+  for(const f of d.red_flags){
+    const ref=SophiaEngine.LEGAL_REFERENCES[f.id]||{};
+    flagsHtml+=`<div style="border-left:3px solid #c9a961;padding:14px 18px;margin-bottom:14px;background:#faf8f0;border-radius:0 8px 8px 0"><h3 style="font-size:14px;margin:0 0 6px;text-transform:capitalize;color:#1a1a1a">${f.id.replace(/_/g," ")}</h3><div style="font-size:11px;color:#8a7d5c;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px">Confidence ${f.confidence} · ${f.occurrence_count} occurrence(s)</div>`;
+    if(ref.summary) flagsHtml+=`<p style="font-size:13px;color:#333"><em>${ref.summary}</em></p>`;
+    for(const ev of f.evidence.slice(0,3)) flagsHtml+=`<p style="font-size:13px;color:#333">…${ev.context.slice(0,220)}…</p>`;
+    if(ref.laws) for(const l of ref.laws.slice(0,4)) flagsHtml+=`<div style="font-size:12px;color:#6a5a30;padding-left:12px;border-left:1px solid #c9a961;margin:4px 0;line-height:1.5">⚖ ${l}</div>`;
+    if(ref.action) flagsHtml+=`<div style="font-size:12px;color:#8a6d2f;margin-top:10px;font-style:italic">→ ${ref.action}</div>`;
+    flagsHtml+="</div>";
+  }
+  let titleHtml="";
+  if(d.title_search){
+    const t=d.title_search;
+    titleHtml=`<h2 style="font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#8a6d2f;border-bottom:1px solid #e0d5b0;padding-bottom:8px;margin:32px 0 16px">Title Search Analysis</h2><pre style="background:#faf8f0;border:1px solid #e0d5b0;border-radius:8px;padding:14px;font-size:12px;white-space:pre-wrap">${JSON.stringify({property:t.property,first_party:t.parties.first_party,second_party:t.parties.second_party,registration:t.registration,legal_opinion:t.legal_opinion,confidence:t.confidence,red_flags:t.red_flags},null,2)}</pre>`;
+  }
+  const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Sophia Forensic Report — ${d.document}</title><style>body{font-family:ui-sans-serif,system-ui,sans-serif;background:#fff;color:#1a1a1a;max-width:900px;margin:0 auto;padding:40px 30px;line-height:1.55}h1{font-size:22px;margin:0}h2{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:#8a6d2f;border-bottom:1px solid #e0d5b0;padding-bottom:8px;margin:32px 0 16px}pre{background:#faf8f0;border:1px solid #e0d5b0;border-radius:8px;padding:14px;font-size:12px;overflow-x:auto;white-space:pre-wrap;word-break:break-word}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:16px 0}.stat{border:1px solid #e0d5b0;border-radius:8px;padding:12px}.stat .k{font-size:10px;color:#8a7d5c;letter-spacing:.1em;text-transform:uppercase}.stat .v{font-size:18px;font-weight:600;margin-top:4px}.disc{font-size:12px;color:#8a7d5c;line-height:1.7;padding:16px;background:#faf8f0;border:1px solid #e0d5b0;border-radius:8px;margin-top:24px}@media print{.print-btn{display:none}}.print-btn{position:fixed;bottom:24px;right:24px;padding:14px 22px;background:#c9a961;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;letter-spacing:.1em;cursor:pointer;text-transform:uppercase;box-shadow:0 4px 20px rgba(0,0,0,.15)}</style></head><body><div style="display:flex;align-items:center;gap:18px;border-bottom:3px solid #c9a961;padding-bottom:20px;margin-bottom:30px">${logo}<div><h1>Sophia Forensic Screening Report</h1><div style="font-size:12px;color:#8a7d5c;letter-spacing:.14em;text-transform:uppercase;margin-top:4px">Sovereign Intelligence Mesh · Satya Universe</div></div></div><p style="font-size:13px;color:#666">Document: <strong>${esc(d.document)}</strong><br>Generated: ${esc(d.analysis_date)}</p><div style="display:flex;align-items:center;gap:24px;margin:20px 0"><div style="width:110px;height:110px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;background:conic-gradient(${color} ${pct}%,#eee 0);position:relative;color:#1a1a1a"><div style="position:absolute;inset:10px;border-radius:50%;background:#fff"></div><span style="position:relative;z-index:2">${pct}</span></div><div><div style="font-size:24px;font-weight:700;color:${color}">${esc(d.verdict)}</div><div style="font-size:13px;color:#666">Suspicion score ${pct}/100</div></div></div><h2>Statistics</h2><div class="grid">${[["Characters",d.statistics.total_characters.toLocaleString()],["Financial numbers",d.statistics.financial_numbers.toLocaleString()],["Flagged categories",d.statistics.flagged_categories],["Named persons",d.statistics.named_persons_found],["Dates",d.chronology.length]].map(([k,v])=>`<div class="stat"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("")}</div><h2>Financial &amp; Regulatory Findings</h2>${flagsHtml||'<p style="color:#666">No red flags detected.</p>'}${titleHtml}<h2>Benford's Law</h2><pre>${esc(JSON.stringify(d.benford_law,null,2))}</pre><h2>Entities</h2><pre>${esc(JSON.stringify(d.entities,null,2))}</pre>${d.chronology.length?'<h2>Chronology</h2><pre>'+esc(d.chronology.join("\n"))+'</pre>':''}<h2>Integrity</h2><p style="font-size:12px">Type: <strong>${esc(d.integrity.type)}</strong></p><p style="font-family:ui-monospace,monospace;font-size:11px;color:#666;word-break:break-all">SHA-512: ${esc(d.integrity.content_hash_sha512)}</p><div class="disc"><strong>Honest capability statement.</strong> Automated screening aid — not a legal opinion, not a forensic audit finding, not a guarantee of zero false positives. Every score and verdict is a prioritization aid to guide human review, not a conclusion.</div><button class="print-btn" onclick="window.print()">Print / Save as PDF</button></body></html>`;
+  const blob=new Blob([html],{type:"text/html"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a"); a.href=url; a.download=(d.document.split(".")[0]||"sophia")+"_report.html"; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
+}
+
+const SAMPLE=`BHARAT HOSPITALITY HOLDINGS LIMITED
+Annual Report 2024-25 — Extracts
+
+Independent Auditor's Report
+We draw attention to Note 27. The Company has incurred a net loss of Rs. 42.7 Crore for the year
+ended 31 March 2025 and, as of that date, the Company's current liabilities exceeded its current
+assets by Rs. 118.3 Crore. These conditions indicate the existence of a material uncertainty that
+may cast significant doubt about the Company's ability to continue as a going concern.
+
+Note 27 — Going Concern
+The Company's accumulated losses have eroded 62% of its paid-up capital. The Company has defaulted
+on repayment of Rs. 18.5 Crore term loan instalment due on 15 January 2025.
+
+Note 34 — Related Party Transactions
+During the year, the Company entered into related party transactions with Sunrise Estates Private
+Limited (a wholly owned subsidiary of the promoter group) amounting to Rs. 24.3 Crore towards
+purchase of land where no independent valuation was obtained.
+
+Note 41 — Contingent Liabilities
+(i) Income Tax Department has issued a show cause notice (SCN) dated 12 February 2025 for alleged
+under-reporting of income of Rs. 9.1 Crore.
+(ii) Enforcement Directorate has initiated an investigation. Summons have been issued to two directors.
+(iii) Pending litigation before the Delhi High Court in respect of a disputed property at Khasra No.
+452/3, Village Kapashera. Arbitration proceedings are ongoing.
+(iv) The Company has given corporate guarantees of Rs. 67.4 Crore for loans availed by a related entity.
+
+Note 52 — Regulatory
+The Reserve Bank of India has placed the Company's banking subsidiary under scrutiny following
+NPA classification of Rs. 132 Crore of its loan book. SEBI has sought clarification.
+
+Statutory Auditors: Mehta & Associates, Chartered Accountants (FRN 004512N)
+
+FIRST PARTY: Sunrise Estates Private Limited
+SECOND PARTY: Mr. Rajesh Mehta and Mrs. Kavita Mehta
+PROPERTY ADDRESS: Khasra No. 452/3, Village Kapashera, New Delhi
+DOC. REG NO. 4521/2019
+ADDL. BOOK NO. 1
+VOL NO. 4521
+PAGE NOS. 112-118
+REGD. DATE 12/08/2019
+LEGAL OPINION: The title appears clear, however a caveat has been registered by a third party in
+2021 which is sub-judice. This opinion is based on the basis of documents made available and we
+assume no personal responsibility.
+LIMITATION: This opinion does not cover encumbrances not appearing in the records of the Sub-Registrar.`;
+</script>
+</body></html>
